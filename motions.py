@@ -4,16 +4,16 @@ import rclpy
 from rclpy.node import Node
 
 from utilities import Logger, euler_from_quaternion
-from rclpy.qos import QoSProfile
+from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPolicy # include policies
 
 # TODO Part 3: Import message types needed: 
     # For sending velocity commands to the robot: Twist
     # For the sensors: Imu, LaserScan, and Odometry
 # Check the online documentation to fill in the lines below
-from ... import Twist
+from geometry_msgs.msg import Twist
 from sensor_msgs.msg import Imu
-from ... import LaserScan
-from ... import Odometry
+from sensor_msgs.msg import LaserScan
+from nav_msgs.msg import Odometry
 
 from rclpy.time import Time
 
@@ -32,36 +32,57 @@ class motion_executioner(Node):
         
         self.type=motion_type
         
-        self.radius_=0.0
+        self.radius_=2.0
         
         self.successful_init=False
         self.imu_initialized=False
         self.odom_initialized=False
         self.laser_initialized=False
+
+        # TODO Part 3: Create the QoS profile by setting the proper parameters in (...)
+        # match the QoS of the topics, this is on burgerbot I imagine tbot4 is the same?
+        qos=QoSProfile(
+            history=HistoryPolicy.SYSTEM_DEFAULT,
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            durability=DurabilityPolicy.VOLATILE
+        )
         
         # TODO Part 3: Create a publisher to send velocity commands by setting the proper parameters in (...)
-        self.vel_publisher=self.create_publisher(...)
+        #   needs (MsgType, "/topic_name", qos)
+        self.vel_publisher=self.create_publisher(Twist, "/cmd_vel", 10)
                 
         # loggers
         self.imu_logger=Logger('imu_content_'+str(motion_types[motion_type])+'.csv', headers=["acc_x", "acc_y", "angular_z", "stamp"])
         self.odom_logger=Logger('odom_content_'+str(motion_types[motion_type])+'.csv', headers=["x","y","th", "stamp"])
         self.laser_logger=Logger('laser_content_'+str(motion_types[motion_type])+'.csv', headers=["ranges", "angle_increment", "stamp"])
-        
-        # TODO Part 3: Create the QoS profile by setting the proper parameters in (...)
-        qos=QoSProfile(...)
 
         # TODO Part 5: Create below the subscription to the topics corresponding to the respective sensors
         # IMU subscription
-        
-        ...
+
+        self.imu_subscriber = self.create_subscription(
+            Imu,
+            "/imu",
+            self.imu_callback,
+            qos
+        )
         
         # ENCODER subscription
 
-        ...
+        self.odom_subscriber = self.create_subscription(
+            Odometry,
+            "/odom",
+            self.odom_callback,
+            qos
+        )
         
         # LaserScan subscription 
         
-        ...
+        self.laser_subscriber = self.create_subscription(
+            LaserScan,
+            "/scan",
+            self.laser_callback,
+            qos
+        )
         
         self.create_timer(0.1, self.timer_callback)
 
@@ -73,23 +94,43 @@ class motion_executioner(Node):
     # You can save the needed fields into a list, and pass the list to the log_values function in utilities.py
 
     def imu_callback(self, imu_msg: Imu):
-        ...    # log imu msgs
+        # log linear x, y acceleration, and angular velocity about axis z
+        self.imu_logger.log_values([
+            imu_msg.linear_acceleration.x,
+            imu_msg.linear_acceleration.y,
+            imu_msg.angular_velocity.z,
+            Time.from_msg(imu_msg.header.stamp).nanoseconds
+        ])
+        self.imu_initialized = True
         
     def odom_callback(self, odom_msg: Odometry):
-        
-        ... # log odom msgs
+        # log detected x, y position, and turn quaternion into yaw angle (theta about z axis)
+        #   note that the robot does not typically expect any pitch and roll (unless it has tragically flipped over)
+        quat = odom_msg.pose.pose.orientation
+        self.odom_logger.log_values([
+            odom_msg.pose.pose.position.x,
+            odom_msg.pose.pose.position.y,
+            euler_from_quaternion([quat.x, quat.y, quat.z, quat.w]),
+            Time.from_msg(odom_msg.header.stamp).nanoseconds
+        ])
+        self.odom_initialized = True
                 
     def laser_callback(self, laser_msg: LaserScan):
-        
-        ... # log laser msgs with position msg at that time
+        # log the ranges and the angle between each lidar range
+        self.laser_logger.log_values([
+            laser_msg.ranges,
+            laser_msg.angle_increment,
+            Time.from_msg(laser_msg.header.stamp).nanoseconds
+        ])
+        self.laser_initialized = True
                 
     def timer_callback(self):
         
         if self.odom_initialized and self.laser_initialized and self.imu_initialized:
             self.successful_init=True
-            
         if not self.successful_init:
             return
+        print(self.successful_init)
         
         cmd_vel_msg=Twist()
         
@@ -106,6 +147,7 @@ class motion_executioner(Node):
             print("type not set successfully, 0: CIRCLE 1: SPIRAL and 2: ACCELERATED LINE")
             raise SystemExit 
 
+        print(cmd_vel_msg)
         self.vel_publisher.publish(cmd_vel_msg)
         
     
@@ -114,17 +156,46 @@ class motion_executioner(Node):
     def make_circular_twist(self):
         
         msg=Twist()
-        ... # fill up the twist msg for circular motion
+
+        # draw a circle by giving a linear velocity w/ a turning angle
+        msg.linear.x = 0.25
+        msg.linear.y = 0.0
+        msg.linear.z = 0.0
+
+        msg.angular.x = 0.0
+        msg.angular.y = 0.0
+        msg.angular.z = 0.5
+
         return msg
 
     def make_spiral_twist(self):
         msg=Twist()
-        ... # fill up the twist msg for spiral motion
+
+        # unsure exactly what spiral here means, assuming it means circle on the spot
+        # TODO: ask TAs during lab session
+        msg.linear.x = 0.2
+        msg.linear.y = 0.0
+        msg.linear.z = 0.0
+
+        msg.angular.x = 0.0
+        msg.angular.y = 0.0
+        msg.angular.z = self.radius_
+        self.radius_ *= 0.95
+        
         return msg
     
     def make_acc_line_twist(self):
         msg=Twist()
-        ... # fill up the twist msg for line motion
+
+        # move linearly in the robot's x direction
+        msg.linear.x = 0.2
+        msg.linear.y = 0.0
+        msg.linear.z = 0.0
+
+        msg.angular.x = 0.0
+        msg.angular.y = 0.0
+        msg.angular.z = 0.0
+        
         return msg
 
 import argparse
@@ -153,11 +224,13 @@ if __name__=="__main__":
         ME=motion_executioner(motion_type=SPIRAL)
 
     else:
-        print(f"we don't have {arg.motion.lower()} motion type")
+        print(f"we don't have {args.motion.lower()} motion type")
 
 
     
     try:
         rclpy.spin(ME)
     except KeyboardInterrupt:
+        ME.destroy_node()
+        rclpy.shutdown()
         print("Exiting")
