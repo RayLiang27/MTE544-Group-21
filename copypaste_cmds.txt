@@ -6,11 +6,11 @@ Publish 0-velocity Twist
 
 CONNECT TO VPN
     cd ~/robohub/turtlebot4/
-    ./rendezvous_vpn/vpn.sh 6
+    ./rendezvous_vpn/vpn.sh 9
 
 SOURCE CMD
     source ~/robohub/turtlebot4/configs/.bashrc
-    export ROS_DOMAIN_ID=9
+    export ROS_DOMAIN_ID=15
     # check with
     ros2 topic list
 

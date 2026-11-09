@@ -4,7 +4,7 @@ from utilities import Logger, euler_from_quaternion
 from rclpy.time import Time
 from rclpy.node import Node
 
-from rclpy.qos import QoSProfile
+from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy, HistoryPolicy # include policies
 from nav_msgs.msg import Odometry as odom
 
 from rclpy import init, spin
@@ -19,14 +19,31 @@ class localization(Node):
         # TODO Part 3: Define the QoS profile variable based on whether you are using the simulation (Turtlebot 3 Burger) or the real robot (Turtlebot 4)
         # Remember to define your QoS profile based on the information available in "ros2 topic info /odom --verbose" as explained in Tutorial 3
 
-        odom_qos=...
+        # This is for sim
+        # odom_qos=QoSProfile(
+        #     history=HistoryPolicy.SYSTEM_DEFAULT,
+        #     reliability=ReliabilityPolicy.RELIABLE,
+        #     durability=DurabilityPolicy.VOLATILE
+        # )
+
+        # This is for real bot
+        odom_qos=QoSProfile(
+            history=HistoryPolicy.SYSTEM_DEFAULT,
+            reliability=ReliabilityPolicy.BEST_EFFORT,
+            durability=DurabilityPolicy.VOLATILE
+        )
         
         self.loc_logger=Logger("robot_pose.csv", ["x", "y", "theta", "stamp"])
         self.pose=None
-        
-        if localizationType == rawSensor:
+
         # TODO Part 3: subscribe to the position sensor topic (Odometry)
-        # ...
+        if localizationType == rawSensor:
+            self.odom_subscriber = self.create_subscription(
+                odom,
+                "/odom",
+                self.odom_callback,
+                odom_qos
+            )
         else:
             print("This type doesn't exist", sys.stderr)
     
@@ -34,7 +51,9 @@ class localization(Node):
     def odom_callback(self, pose_msg):
         
         # TODO Part 3: Read x,y, theta, and record the stamp
-        self.pose=[ ... ]
+        self.pose=[ pose_msg.pose.pose.position.x, pose_msg.pose.pose.position.y, euler_from_quaternion(
+            [pose_msg.pose.pose.orientation.x, pose_msg.pose.pose.orientation.y, pose_msg.pose.pose.orientation.z, pose_msg.pose.pose.orientation.w]
+        ), pose_msg.header.stamp ]
         
         # Log the data
         self.loc_logger.log_values([self.pose[0], self.pose[1], self.pose[2], Time.from_msg(self.pose[3]).nanoseconds])
@@ -45,4 +64,15 @@ class localization(Node):
 # TODO Part 3
 # Here put a guard that makes the node run, ONLY when run as a main thread!
 # This is to make sure this node functions right before using it in decision.py
-    
+if __name__ == "__main__":
+    init()
+
+    # spin up simple instance
+    test_loc = localization(rawSensor)
+
+    try:
+        spin(test_loc)
+    except KeyboardInterrupt:
+        test_loc.destroy_node()
+        rclpy.shutdown()
+        print("Exiting")
