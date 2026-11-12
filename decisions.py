@@ -20,7 +20,7 @@ from controller import controller, trajectoryController
 class decision_maker(Node):
     
     
-    def __init__(self, publisher_msg, publishing_topic, qos_publisher, rate=10, motion_type=POINT_PLANNER):
+    def __init__(self, publisher_msg, publishing_topic, qos_publisher, rate=25, motion_type=POINT_PLANNER):
 
         super().__init__("decision_maker")
 
@@ -33,10 +33,11 @@ class decision_maker(Node):
 
 
         # TODO Part 3: use the Kalman Filter
-        self.localizer=localization(...)
+        self.localizer=localization(type=kalmanFilter, dt=float(1/rate))
         
         if motion_type==POINT_PLANNER:
-            self.controller=controller(klp=0.2, klv=0.5, kap=0.8, kav=0.6)      
+            print("WE POINTING")
+            self.controller=controller(klp=0.4, klv=0.3, kap=0.8, kav=0.6)      
             self.planner=planner(POINT_PLANNER)
 
         
@@ -109,7 +110,7 @@ def main(args=None):
     
     
     init()
-    
+    print(args.motion)
     
     if args.motion == "point":
         DM=decision_maker(Twist, "/cmd_vel", 10, motion_type=POINT_PLANNER)
