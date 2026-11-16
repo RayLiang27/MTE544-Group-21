@@ -29,7 +29,7 @@ class decision_maker(Node):
         
         publishing_period=1/rate
 
-        self.reachThreshold=0.01
+        self.reachThreshold=0.1
 
 
         # TODO Part 3: use the Kalman Filter
@@ -37,12 +37,12 @@ class decision_maker(Node):
         
         if motion_type==POINT_PLANNER:
             print("WE POINTING")
-            self.controller=controller(klp=0.4, klv=0.3, kap=0.8, kav=0.6)      
+            self.controller=controller(klp=0.2, klv=0.5, kap=0.8, kav=0.8)  
             self.planner=planner(POINT_PLANNER)
 
         
         elif motion_type==TRAJECTORY_PLANNER:
-            self.controller=trajectoryController(klp=0.2, klv=0.5, kap=0.8, kav=0.6)      
+            self.controller=trajectoryController(klp=0.2, klv=0.3, kap=0.8, kav=0.6)      
             self.planner=planner(TRAJECTORY_PLANNER)
         elif motion_type==SPIRAL_4TUNE:
             self.controller=None

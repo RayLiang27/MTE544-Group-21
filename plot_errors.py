@@ -20,9 +20,10 @@ def plot_errors(filename):
     fig, axes = plt.subplots(2,1, figsize=(14,6))
 
 
-    axes[0].plot([lin[len(headers) - 3] for lin in values], [lin[len(headers) - 2] for lin in values])
-    axes[0].plot([lin[0] for lin in values], [lin[1] for lin in values])
+    axes[0].plot([lin[len(headers) - 3] for lin in values], [lin[len(headers) - 2] for lin in values], label="ekf")
+    axes[0].plot([lin[0] for lin in values], [lin[1] for lin in values], label="odom")
     axes[0].set_title("state space")
+    axes[0].legend()
     axes[0].grid()
 
     

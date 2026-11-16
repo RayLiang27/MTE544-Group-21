@@ -52,12 +52,12 @@ class kalman_filter:
         
         x, y, th, w, v, vdot = self.x
 
-        # if th <= -M_PI:
-        #     th += 2*M_PI
+        if th <= -M_PI:
+            th += 2*M_PI
         
         
-        # elif th >= M_PI:
-        #     th -= 2*M_PI
+        elif th >= M_PI:
+            th -= 2*M_PI
 
         dt = self.dt
         

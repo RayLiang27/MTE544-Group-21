@@ -35,6 +35,7 @@ class localization(Node):
 
         self.loc_logger=Logger( loggerName , loggerHeaders)
         self.pose=None
+        self.last_stamp=None
         
         if type==rawSensors:
             self.initRawSensors()
@@ -75,9 +76,9 @@ class localization(Node):
         # P= np.diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1]) # initial covariance expected shape: (6, 6)
 
         # try 4: 
-        Q= np.diag([0.5, 0.5, 0.5, 0.5, 0.5, 0.5]) # expected shape: (6, 6)
-        R= np.diag([0.5, 0.5, 0.5, 0.5]) # expected shape: (4, 4)
-        P= np.diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1]) # initial covariance expected shape: (6, 6)
+        # Q= np.diag([0.5, 0.5, 0.5, 0.5, 0.5, 0.5]) # expected shape: (6, 6)
+        # R= np.diag([0.5, 0.5, 0.5, 0.5]) # expected shape: (4, 4)
+        # P= np.diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1]) # initial covariance expected shape: (6, 6)
 
         # try 5: 
         # Q= np.diag([0.4, 0.4, 0.4, 0.4, 0.4, 0.4]) # expected shape: (6, 6)
@@ -85,9 +86,9 @@ class localization(Node):
         # P= np.diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1]) # initial covariance expected shape: (6, 6)
 
         # point 
-        # Q= np.diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1]) # expected shape: (6, 6)
-        # R= np.diag([0.1, 0.1, 0.1, 0.1]) # expected shape: (4, 4)
-        # P= np.diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1]) # initial covariance expected shape: (6, 6)
+        Q= np.diag([0.3, 0.3, 0.98, 0.98, 0.98, 0.8]) # expected shape: (6, 6)
+        R= np.diag([0.1, 0.1, 0.3, 0.3]) # expected shape: (4, 4) # [v, w, ax, ay]
+        P= np.diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1]) # initial covariance expected shape: (6, 6)
         
         self.kf=kalman_filter(P,Q,R, x, dt)
         
@@ -99,6 +100,15 @@ class localization(Node):
         time_syncher.registerCallback(self.fusion_callback)
     
     def fusion_callback(self, odom_msg: odom, imu_msg: Imu):
+
+        # Set new dt
+        t = Time.from_msg(odom_msg.header.stamp).nanoseconds * 1e-9
+        if self.last_stamp is not None:
+            new_dt = t - self.last_stamp
+            if new_dt > 0:
+                self.kf.dt = new_dt
+                # print(f"dt: {new_dt}")
+        self.last_stamp = t
         
         # TODO Part 3: Use the EKF to perform state estimation
         # Take the measurements
@@ -130,6 +140,7 @@ class localization(Node):
         # self.loc_logger.log_values(list([odom_msg.pose.pose.position.x, odom_msg.pose.pose.position.y]) + list(z[2:]) + [xhat[5], (xhat[3]*xhat[4]), xhat[4], xhat[3], xhat[0], xhat[1], Time.from_msg(odom_msg.header.stamp).nanoseconds])
 
         # self.loc_logger.log_values(list([odom_msg.pose.pose.position.x, odom_msg.pose.pose.position.y, euler_from_quaternion(odom_msg.pose.pose.orientation)]) + [xhat[2], xhat[0], xhat[1], Time.from_msg(odom_msg.header.stamp).nanoseconds])
+        print(f"x: {xhat[0]}, y: {xhat[1]}, odom_x: {odom_msg.pose.pose.position.x}, odom_y: {odom_msg.pose.pose.position.y}")
       
     def odom_callback(self, pose_msg):
         
