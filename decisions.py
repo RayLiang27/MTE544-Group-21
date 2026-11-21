@@ -32,7 +32,7 @@ class decision_maker(Node):
         self.reachThreshold=0.1
 
 
-        # TODO Part 3: use the Kalman Filter
+        # Part 3: initialize Kalman Filter
         self.localizer=localization(type=kalmanFilter, dt=float(1/rate))
         
         if motion_type==POINT_PLANNER:

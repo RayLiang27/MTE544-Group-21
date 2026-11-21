@@ -27,9 +27,6 @@ imu_qos=QoSProfile(reliability=2, durability=2, history=1, depth=10)
 class localization(Node):
     
     def __init__(self, type, dt, loggerName="robotPose.csv", loggerHeaders=["odom_x", "odom_y", "imu_ax", "imu_ay", "kf_ax", "kf_ay","kf_vx","kf_w", "kf_x", "kf_y", "stamp"]):
-        loggerHeaders=["odom_x", "odom_y", "odom_theta", "imu_ax", "imu_ay", "kf_ax", "kf_ay","kf_vx", "kf_w", "kf_th", "kf_x", "kf_y", "stamp"]
-        # loggerHeaders=["odom_x", "odom_y", "odom_theta", "kf_th", "kf_x", "kf_y", "stamp"]
-        # loggerHeaders=["odom_x", "odom_y", "odom_theta", "imu_ax", "imu_ay", "kf_ax", "kf_ay","kf_vx","kf_w", "kf_th", "kf_x", "kf_y", "stamp"]
 
         super().__init__("localizer")
 
@@ -50,7 +47,7 @@ class localization(Node):
         
     def initKalmanfilter(self, dt):
         
-        # TODO Part 3: Set up the quantities for the EKF (hint: you will need the functions for the states and measurements)
+        # Part 3: Set up the quantities for the EKF
         
         x= np.zeros(6) # [x, y, theta, w, v, vdot], initialized all to 0
 
@@ -60,39 +57,39 @@ class localization(Node):
         # P= np.diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1]) # initial covariance expected shape: (6, 6)
 
         # Real robot
-        # try 1: 
+        # variation 0: 
         # Q= np.diag([0.5, 0.5, 0.5, 0.5, 0.5, 0.5]) # expected shape: (6, 6)
         # R= np.diag([0.5, 0.5, 0.5, 0.5]) # expected shape: (4, 4)
         # P= np.diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1]) # initial covariance expected shape: (6, 6)
 
-        # try 2:
+        # var 1:
         # Q= np.diag([0.2, 0.2, 0.2, 0.2, 0.2, 0.2]) # expected shape: (6, 6)
         # R= np.diag([0.5, 0.5, 0.5, 0.5]) # expected shape: (4, 4)
         # P= np.diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1]) # initial covariance expected shape: (6, 6)
 
-        # try 3:
+        # var 2:
         # Q= np.diag([0.8, 0.8, 0.8, 0.8, 0.8, 0.8]) # expected shape: (6, 6)
         # R= np.diag([0.5, 0.5, 0.5, 0.5]) # expected shape: (4, 4)
         # P= np.diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1]) # initial covariance expected shape: (6, 6)
 
-        # try 4: 
+        # var 3: 
         # Q= np.diag([0.5, 0.5, 0.5, 0.5, 0.5, 0.5]) # expected shape: (6, 6)
         # R= np.diag([0.5, 0.5, 0.5, 0.5]) # expected shape: (4, 4)
         # P= np.diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1]) # initial covariance expected shape: (6, 6)
 
-        # try 5: 
+        # var 4: 
         # Q= np.diag([0.4, 0.4, 0.4, 0.4, 0.4, 0.4]) # expected shape: (6, 6)
         # R= np.diag([0.85, 0.85, 0.85, 0.85]) # expected shape: (4, 4)
         # P= np.diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1]) # initial covariance expected shape: (6, 6)
 
-        # point 
+        # values used for point controller
         Q= np.diag([0.3, 0.3, 0.98, 0.98, 0.98, 0.8]) # expected shape: (6, 6)
         R= np.diag([0.1, 0.1, 0.3, 0.3]) # expected shape: (4, 4) # [v, w, ax, ay]
         P= np.diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1]) # initial covariance expected shape: (6, 6)
         
         self.kf=kalman_filter(P,Q,R, x, dt)
         
-        # TODO Part 3: Use the odometry and IMU data for the EKF
+        # Part 3: Use the odometry and IMU data for the EKF
         self.odom_sub=message_filters.Subscriber(self, odom, "/odom", qos_profile=odom_qos)
         self.imu_sub=message_filters.Subscriber(self, Imu, "/imu", qos_profile=imu_qos)
         
@@ -101,7 +98,7 @@ class localization(Node):
     
     def fusion_callback(self, odom_msg: odom, imu_msg: Imu):
 
-        # Set new dt
+        # Set new dt based on odom_msg time sample
         t = Time.from_msg(odom_msg.header.stamp).nanoseconds * 1e-9
         if self.last_stamp is not None:
             new_dt = t - self.last_stamp
@@ -110,11 +107,11 @@ class localization(Node):
                 # print(f"dt: {new_dt}")
         self.last_stamp = t
         
-        # TODO Part 3: Use the EKF to perform state estimation
+        # Part 3: Use the EKF to perform state estimation
         # Take the measurements
-        # your measurements are the linear velocity and angular velocity from odom msg
+        # measurements are the linear velocity and angular velocity from odom msg
         # and linear acceleration in x and y from the imu msg
-        # the kalman filter should do a proper integration to provide x,y and filter ax,ay
+        # the kalman filter does a proper integration to provide x,y and filter ax,ay
         z=np.array([odom_msg.twist.twist.linear.x, odom_msg.twist.twist.angular.z, imu_msg.linear_acceleration.x, imu_msg.linear_acceleration.y]) # [v, w, ax, ay]
         
         # Implement the two steps for estimation
@@ -127,20 +124,15 @@ class localization(Node):
         # Update the pose estimate to be returned by getPose
         self.pose=np.array(np.append(xhat[:3], odom_msg.header.stamp))
 
-        # TODO Part 4: log your data
-        # ALL
-        self.loc_logger.log_values(list([odom_msg.pose.pose.position.x, odom_msg.pose.pose.position.y, euler_from_quaternion(odom_msg.pose.pose.orientation)]) + list(z[2:]) + [xhat[5], (xhat[3]*xhat[4]), xhat[4], xhat[3], xhat[2], xhat[0], xhat[1], Time.from_msg(odom_msg.header.stamp).nanoseconds])
-
-        # self.loc_logger.log_values(list([euler_from_quaternion(odom_msg.pose.pose.orientation)]) + list(z[2:]) + [xhat[5], (xhat[3]*xhat[4]), xhat[4], xhat[3], xhat[2], xhat[0], xhat[1], Time.from_msg(odom_msg.header.stamp).nanoseconds])
+        # Part 4: log all data
+        # EXTRA VARIABLES
+        # self.loc_logger.log_values(list([odom_msg.pose.pose.position.x, odom_msg.pose.pose.position.y, euler_from_quaternion(odom_msg.pose.pose.orientation)]) + list(z[2:]) + [xhat[5], (xhat[3]*xhat[4]), xhat[4], xhat[3], xhat[2], xhat[0], xhat[1], Time.from_msg(odom_msg.header.stamp).nanoseconds])
 
         # ORIGINAL
-        # self.loc_logger.log_values(list(z[2:]) + [xhat[5], (xhat[3]*xhat[4]), xhat[4], xhat[3], xhat[0], xhat[1], Time.from_msg(odom_msg.header.stamp).nanoseconds])
+        self.loc_logger.log_values(list(z[2:]) + [xhat[5], (xhat[3]*xhat[4]), xhat[4], xhat[3], xhat[0], xhat[1], Time.from_msg(odom_msg.header.stamp).nanoseconds])
 
-        #add odom xy
+        # ADD ODOM XY
         # self.loc_logger.log_values(list([odom_msg.pose.pose.position.x, odom_msg.pose.pose.position.y]) + list(z[2:]) + [xhat[5], (xhat[3]*xhat[4]), xhat[4], xhat[3], xhat[0], xhat[1], Time.from_msg(odom_msg.header.stamp).nanoseconds])
-
-        # self.loc_logger.log_values(list([odom_msg.pose.pose.position.x, odom_msg.pose.pose.position.y, euler_from_quaternion(odom_msg.pose.pose.orientation)]) + [xhat[2], xhat[0], xhat[1], Time.from_msg(odom_msg.header.stamp).nanoseconds])
-        print(f"x: {xhat[0]}, y: {xhat[1]}, odom_x: {odom_msg.pose.pose.position.x}, odom_y: {odom_msg.pose.pose.position.y}")
       
     def odom_callback(self, pose_msg):
         
