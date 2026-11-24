@@ -63,6 +63,8 @@ class localization(Node):
     
     def fusion_callback(self, odom_msg: odom, imu_msg: Imu):
 
+        # OTHER TODO RATE Make dt dynamically recalculated?
+
         if not self.kalmanInitialized:
             x=np.array([odom_msg.pose.pose.position.x,
                         odom_msg.pose.pose.position.y,
@@ -71,11 +73,11 @@ class localization(Node):
                         0,
                         0])        
             
-            # TODO PART 5 Put the Q and R matrices
+            # DONE TODO PART 5 Put the Q and R matrices
             # that you conclude from lab Three
-            Q=...
-            R=...
-            P=...
+            Q= np.diag([0.3, 0.3, 0.98, 0.98, 0.98, 0.8]) # expected shape: (6, 6)
+            R= np.diag([0.1, 0.1, 0.3, 0.3]) # expected shape: (4, 4) # [v, w, ax, ay]
+            P= np.diag([0.1, 0.1, 0.1, 0.1, 0.1, 0.1]) # initial covariance expected shape: (6, 6)
                         
             self.kf=kalman_filter(P,Q,R, x)
             
