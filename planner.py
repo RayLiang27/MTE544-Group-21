@@ -49,9 +49,11 @@ class planner:
         
         # DONE TODO PART 5 convert the cell pixels into the cartesian coordinates
             # search for the path using search() from A*'s file
-        Path = list(map(self.m_utilites.position_2_cell, search(self.costMap, startPose, endPose)))
+        Path = list(map(self.m_utilites.cell_2_position, search(self.costMap, startPose, endPose)))
 
+        print(Path)
 
+        print("PATH DONE")
 
         # DONE TODO PART 5 return the path as list of [x,y]
         return Path

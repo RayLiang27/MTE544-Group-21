@@ -23,6 +23,8 @@ if __name__ == "__main__":
     # Create a static transform broadcaster
     static_broadcaster = StaticTransformBroadcaster(node)
 
+    print("Starting mapPublisher...")
+
     # Create an identity transform (no translation or rotation)
     static_transform_stamped = TransformStamped()
     static_transform_stamped.header.stamp = node.get_clock().now().to_msg()

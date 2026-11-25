@@ -71,18 +71,18 @@ def search(maze, start, end):
 
     # DONE TODO PART 4 Create start and end node with initized values for g, h and f
     # Use None as parent if not defined
-    start_node = Node(None, list(start))
+    start_node = Node(None, tuple(start))
     start_node.g = 0 # ?     # cost from start Node
     heuristic_start = 0
     if HEURISTIC_MODE == MANHATTAN:
-        heuristic_start = abs(list(end)[0] - list(start)[0]) + abs(list(end)[1] - list(start)[1])
+        heuristic_start = abs(tuple(end)[0] - tuple(start)[0]) + abs(tuple(end)[1] - tuple(start)[1])
     elif HEURISTIC_MODE == EUCLIDEAN:
-        heuristic_start = math.sqrt((list(end)[0] - list(start)[0]) ** 2 + (list(end)[1] - list(start)[1]) ** 2)
+        heuristic_start = math.sqrt((tuple(end)[0] - tuple(start)[0]) ** 2 + (tuple(end)[1] - tuple(start)[1]) ** 2)
     start_node.h = heuristic_start     # heuristic estimated cost to end Node
     start_node.f = start_node.g + start_node.h
 
-    end_node = Node(None, list(end))
-    end_node.g = math.inf  # inf?      # set a large value if not defined
+    end_node = Node(None, tuple(end))
+    end_node.g = 10000  # inf?      # set a large value if not defined
     end_node.h = 0         # heuristic estimated cost to end Node
     end_node.f = end_node.g + end_node.h
 
@@ -169,10 +169,10 @@ def search(maze, start, end):
         for new_position in move:
 
             # DONE TODO PART 4 Get node position
-            node_position = (current_node.position[0] + new_position[0], current_node.position[1] + new_position[1])
+            node_position = tuple([current_node.position[0] + new_position[0], current_node.position[1] + new_position[1]])
 
             # DONE TODO PART 4 Make sure within range (check if within maze boundary)
-            if node_position[0] < 0 or node_position[0] > no_rows or node_position[1] < 0 or node_position[1] > no_columns:
+            if node_position[0] < 0 or node_position[0] > no_rows-1 or node_position[1] < 0 or node_position[1] > no_columns-1:
                 continue
 
             # Make sure walkable terrain
@@ -208,3 +208,5 @@ def search(maze, start, end):
 
             # Add the child to the yet_to_visit list
             yet_to_visit_dict[child.position] = child
+
+    print("search done!")
